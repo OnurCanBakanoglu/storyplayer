@@ -81,22 +81,25 @@ class StoryBloc extends Bloc<StoryEvent, StoryState> {
         });
     on<PreviousStoryEvent>(
       (event, emit) => emit(state.copyWith(
-          runnedseconds: 0.0, currentStoryIndex: state.currentStoryIndex - 1,)),
+        runnedseconds: 0.0,
+        currentStoryIndex: state.currentStoryIndex - 1,
+      )),
     );
     on<NextStoryGroup>(
       (event, emit) => {
-        print("NEXTSTORY    ${event.currentgroup}"),
         emit(state.copyWith(
           runnedseconds: 0.0,
           currenstorylistindex: state.currenstorylistindex + 1,
-          currentStoryIndex: state.storygroupslastseenindex[event.currentgroup+1],
+          currentStoryIndex:
+              state.storygroupslastseenindex[event.currentgroup + 1],
         )),
       },
     );
     on<PreviousStoryGroup>(
       (event, emit) => emit(state.copyWith(
           runnedseconds: 0.0,
-          currentStoryIndex: state.storygroupslastseenindex[event.currentgroup-1],
+          currentStoryIndex:
+              state.storygroupslastseenindex[event.currentgroup - 1],
           currenstorylistindex: state.currenstorylistindex - 1)),
     );
     on<NextStoryEvent>((event, emit) => {
