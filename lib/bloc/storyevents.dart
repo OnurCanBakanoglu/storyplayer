@@ -5,7 +5,6 @@ class LoadStoryEvent extends StoryEvent {
 
   LoadStoryEvent({required this.storylist});
 
-  @override
   List get props => [storylist];
 }
 
@@ -45,6 +44,7 @@ class PreviousStoryGroup extends StoryEvent {
   PreviousStoryGroup(this.currentgroup);
 }
 
+// ignore: camel_case_types
 class lastseeningroup extends StoryEvent {
   final List<int> currentIndex;
 

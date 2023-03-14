@@ -73,11 +73,12 @@ enum MediaType {
 }
 
 class StoryBloc extends Bloc<StoryEvent, StoryState> {
-  StoryBloc() : super(StoryState()) {
-    int totalduraton;
+  StoryBloc() : super(const StoryState()) {
     on<LoadStoryEvent>((event, emit) => {
           emit(StoryState(
-              stories: event.storylist, storygroupslastseenindex: [0, 0])),
+              stories: event.storylist,
+              storygroupslastseenindex:
+                  List.generate(event.storylist.length, (index) => 0))),
         });
     on<PreviousStoryEvent>(
       (event, emit) => emit(state.copyWith(
@@ -103,7 +104,6 @@ class StoryBloc extends Bloc<StoryEvent, StoryState> {
           currenstorylistindex: state.currenstorylistindex - 1)),
     );
     on<NextStoryEvent>((event, emit) => {
-          state.stories[state.currentStoryIndex + 1][0].isseen = false,
           if (state.stories[state.currentStoryIndex][0].mediaType ==
               MediaType.image)
             {

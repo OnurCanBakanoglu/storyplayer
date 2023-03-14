@@ -1,19 +1,15 @@
 import 'dart:async';
 
-import 'dart:developer';
 import 'dart:math';
 import 'dart:ui';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:storyplayer/bloc/storyevents.dart';
-import 'package:storyplayer/main.dart';
 import 'package:video_player/video_player.dart';
 
 import 'bloc/storyblocstate.dart';
 
+// ignore: camel_case_types
 class storyui extends StatefulWidget {
   const storyui({super.key});
 
@@ -25,12 +21,13 @@ var timercount = 0;
 var touchdiff = 0;
 double poseval = 0;
 
+// ignore: camel_case_types
 class _storyuiState extends State<storyui> {
   final _pageNotifier = ValueNotifier(0.0);
-
-  late var mainbloc;
-  late Timer watcher;
   late VideoPlayerController _controller;
+  late StoryBloc mainbloc;
+  late Timer watcher;
+
   PageController controller = PageController();
   double currentPageValue = 0.0;
   void _listener() {
@@ -48,13 +45,11 @@ class _storyuiState extends State<storyui> {
     );
 
     mainbloc = StoryBloc();
-    controller.addListener(() {
-      // setState method to
-      // rebuild the widget
+    /*  controller.addListener(() {
       setState(() {
         currentPageValue = controller.page!;
       });
-    });
+    }); */
 
     mainbloc.add(LoadStoryEvent(storylist: [
       [
@@ -95,8 +90,6 @@ class _storyuiState extends State<storyui> {
       ]
     ]));
 
-    //controllerhandler();
-
     _controller.initialize();
     mainbloc.add(PlayPauseEvent(true));
     _watchingProgress();
@@ -107,18 +100,6 @@ class _storyuiState extends State<storyui> {
     super.dispose();
     watcher.cancel();
     _controller.dispose();
-  }
-
-  void controllerhandler() {
-    _controller = VideoPlayerController.network(
-      'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    );
-  }
-
-  void listenfunction() {
-    mainbloc.add(ProgressTrackerInitiate(
-        _controller.value.position.inMilliseconds /
-            _controller.value.duration.inMilliseconds));
   }
 
   void storyresetter() {
@@ -145,12 +126,12 @@ class _storyuiState extends State<storyui> {
           mainbloc.state.currenstorylistindex !=
               mainbloc.state.stories.length - 1) {
         controller.nextPage(
-            duration: Duration(milliseconds: 500), curve: Curves.linear);
+            duration: const Duration(milliseconds: 500), curve: Curves.linear);
         mainbloc.add(NextStoryGroup(mainbloc.state.currenstorylistindex));
       } else if (mainbloc.state.currentStoryIndex == 0 &&
           mainbloc.state.currenstorylistindex != 0) {
         controller.previousPage(
-            duration: Duration(milliseconds: 500), curve: Curves.linear);
+            duration: const Duration(milliseconds: 500), curve: Curves.linear);
         mainbloc.add(PreviousStoryGroup(mainbloc.state.currenstorylistindex));
 
         storyresetter();
@@ -163,7 +144,7 @@ class _storyuiState extends State<storyui> {
         storyresetter();
       } else {
         controller.nextPage(
-            duration: Duration(milliseconds: 500), curve: Curves.linear);
+            duration: const Duration(milliseconds: 500), curve: Curves.linear);
         mainbloc.add(NextStoryGroup(mainbloc.state.currenstorylistindex));
 
         storyresetter();
@@ -205,20 +186,27 @@ class _storyuiState extends State<storyui> {
                       [mainbloc.state.currentStoryIndex]
                   .mediaType ==
               MediaType.video) {
-        mainbloc.state.runnedseconds < 0.1 && !_controller.value.isPlaying
+        mainbloc.state.runnedseconds < 0.1 &&
+                _controller.value.buffered.isNotEmpty &&
+                (_controller.value.buffered[0].end -
+                        _controller.value.buffered[0].start) ==
+                    _controller.value.duration &&
+                !_controller.value.isPlaying
             ? _controller.play().then((value) {
                 timercount = timercount + 100;
                 mainbloc.add(PlayPauseEvent(true));
                 mainbloc.add(ProgressTrackerInitiate(
                     timercount / _controller.value.duration.inMilliseconds));
-                /* (mainbloc.state.isPlaying) ? timercount = timercount + 1 : null; */
               })
-            : {
-                timercount = timercount + 100,
-                mainbloc.add(PlayPauseEvent(true)),
-                mainbloc.add(ProgressTrackerInitiate(
-                    timercount / _controller.value.duration.inMilliseconds)),
-              };
+            : _controller.value.buffered.isNotEmpty &&
+                    _controller.value.isPlaying
+                ? {
+                    timercount = timercount + 100,
+                    mainbloc.add(PlayPauseEvent(true)),
+                    mainbloc.add(ProgressTrackerInitiate(timercount /
+                        _controller.value.duration.inMilliseconds)),
+                  }
+                : null;
 
         if (mainbloc.state.storygroupslastseenindex.isNotEmpty &&
             mainbloc
@@ -227,7 +215,6 @@ class _storyuiState extends State<storyui> {
                         [mainbloc.state.currentStoryIndex]
                     .mediaType ==
                 MediaType.video) {
-          /* !_controller.value.isPlaying ? _controller.play() : null; */
           var modiflist = mainbloc.state.storygroupslastseenindex;
 
           modiflist[mainbloc.state.currenstorylistindex] =
@@ -236,8 +223,6 @@ class _storyuiState extends State<storyui> {
           mainbloc.add(lastseeningroup(modiflist));
         }
       } else if (mainbloc.state.runnedseconds >= 1) {
-        /*  mainbloc.add(ProgressTrackerInitiate(1)); */
-
         timercount = 0;
         timer.cancel();
 
@@ -275,7 +260,6 @@ class _storyuiState extends State<storyui> {
           Expanded(
             child: Listener(
               onPointerDown: (event) {
-                // _onTap(event.position.dx);
                 mainbloc.add(PlayPauseEvent(false));
                 watcher.cancel();
                 _controller.pause();
@@ -283,7 +267,7 @@ class _storyuiState extends State<storyui> {
                 poseval = event.position.dx;
               },
               onPointerUp: (event) {
-                if ((event.timeStamp.inMilliseconds - touchdiff).abs() < 500 &&
+                if ((event.timeStamp.inMilliseconds - touchdiff).abs() < 100 &&
                     (poseval - event.position.dx).abs() < 10) {
                   _onTap(event.position.dx);
                 } else if ((poseval - event.position.dx).abs() <= 20) {
@@ -310,8 +294,6 @@ class _storyuiState extends State<storyui> {
                       return PageView.builder(
                           controller: controller,
                           onPageChanged: (pagech) {
-                            /*  storyresetter(); */
-
                             if (pagech != mainbloc.state.currenstorylistindex) {
                               if (pagech >=
                                   mainbloc.state.currenstorylistindex) {
@@ -323,11 +305,7 @@ class _storyuiState extends State<storyui> {
                                     mainbloc.state.currenstorylistindex));
                               }
                               storyresetter();
-                            } /* else if (pagech <=
-                                mainbloc.state.currenstorylistindex) {
-                              mainbloc.add(PreviousStoryGroup(
-                                  mainbloc.state.currenstorylistindex));
-                            } */
+                            }
                           },
                           itemCount: mainbloc.state.stories.isNotEmpty
                               ? mainbloc
@@ -363,94 +341,116 @@ class _storyuiState extends State<storyui> {
                                                   0
                                               ? Alignment.centerRight
                                               : Alignment.centerLeft,
-                                          child: Container(
-                                            child: Stack(
-                                              children: [
-                                                state
+                                          child: Stack(
+                                            children: [
+                                              state
+                                                          .stories[state
+                                                                  .currenstorylistindex]
+                                                              [state
+                                                                  .currentStoryIndex]
+                                                          .mediaType ==
+                                                      MediaType.video
+                                                  ? _controller.value.buffered
+                                                              .isNotEmpty ||
+                                                          _controller
+                                                              .value.isPlaying
+                                                      ? videoplayerwidget(
+                                                          videourl: mainbloc
+                                                              .state
+                                                              .stories[mainbloc
+                                                                      .state
+                                                                      .currenstorylistindex]
+                                                                  [mainbloc
+                                                                      .state
+                                                                      .currentStoryIndex]
+                                                              .url,
+                                                          controller:
+                                                              _controller,
+                                                        )
+                                                      : const Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            color: Colors.white,
+                                                          ),
+                                                        )
+                                                  : Center(
+                                                      child: Image.network(
+                                                        state
                                                             .stories[state
                                                                     .currenstorylistindex]
                                                                 [state
                                                                     .currentStoryIndex]
-                                                            .mediaType ==
-                                                        MediaType.video
-                                                    ? Center(
-                                                        child: AspectRatio(
-                                                            aspectRatio:
-                                                                _controller
-                                                                    .value
-                                                                    .aspectRatio,
-                                                            child: VideoPlayer(
-                                                                _controller)),
-                                                      )
-                                                    : Center(
-                                                        child: Container(
-                                                          child: Image.network(
-                                                            state
-                                                                .stories[state
-                                                                        .currenstorylistindex]
-                                                                    [state
-                                                                        .currentStoryIndex]
-                                                                .url,
-                                                            loadingBuilder:
-                                                                (BuildContext
-                                                                        context,
-                                                                    Widget
-                                                                        child,
-                                                                    ImageChunkEvent?
-                                                                        loadingProgress) {
-                                                              if (loadingProgress ==
-                                                                  null)
-                                                                return child;
-                                                              return Center(
-                                                                child:
-                                                                    CircularProgressIndicator(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  value: loadingProgress
-                                                                              .expectedTotalBytes !=
-                                                                          null
-                                                                      ? loadingProgress
-                                                                              .cumulativeBytesLoaded /
-                                                                          loadingProgress
-                                                                              .expectedTotalBytes!
-                                                                      : 0,
-                                                                ),
-                                                              );
-                                                            },
-                                                          ),
-                                                        ),
+                                                            .url,
+                                                        loadingBuilder:
+                                                            (BuildContext
+                                                                    context,
+                                                                Widget child,
+                                                                ImageChunkEvent?
+                                                                    loadingProgress) {
+                                                          if (loadingProgress ==
+                                                              null) {
+                                                            return child;
+                                                          }
+                                                          if (loadingProgress
+                                                                      .cumulativeBytesLoaded /
+                                                                  loadingProgress
+                                                                      .expectedTotalBytes! !=
+                                                              1) {
+                                                            watcher.cancel();
+                                                            mainbloc.add(
+                                                                PlayPauseEvent(
+                                                                    false));
+                                                          } else {
+                                                            storyresetter();
+                                                          }
+
+                                                          return Center(
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                              value: loadingProgress
+                                                                          .expectedTotalBytes !=
+                                                                      null
+                                                                  ? loadingProgress
+                                                                          .cumulativeBytesLoaded /
+                                                                      loadingProgress
+                                                                          .expectedTotalBytes!
+                                                                  : 0,
+                                                            ),
+                                                          );
+                                                        },
                                                       ),
-                                                state
-                                                                .stories[state
-                                                                        .currenstorylistindex]
-                                                                    [state
-                                                                        .currentStoryIndex]
-                                                                .mediaType ==
-                                                            MediaType.video &&
-                                                        (!_controller.value
-                                                                .isInitialized ||
-                                                            !_controller.value
-                                                                .isPlaying) &&
-                                                        timercount == 0
-                                                    ? Center(
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                          color: Colors.orange,
-                                                        ),
-                                                      )
-                                                    : SizedBox(),
-                                                mainbloc.state.stories
-                                                        .isNotEmpty
-                                                    ? SafeArea(
-                                                        child: _buildBars(mainbloc
-                                                            .state
-                                                            .stories[state
-                                                                .currenstorylistindex]
-                                                            .length),
-                                                      )
-                                                    : SizedBox(),
-                                              ],
-                                            ),
+                                                    ),
+                                              state
+                                                              .stories[state
+                                                                      .currenstorylistindex]
+                                                                  [state
+                                                                      .currentStoryIndex]
+                                                              .mediaType ==
+                                                          MediaType.video &&
+                                                      (!_controller.value
+                                                              .isInitialized ||
+                                                          !_controller.value
+                                                              .isPlaying) &&
+                                                      timercount == 0
+                                                  ? const Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                      ),
+                                                    )
+                                                  : const SizedBox(),
+                                              mainbloc.state.stories.isNotEmpty
+                                                  ? SafeArea(
+                                                      child: _buildBars(mainbloc
+                                                          .state
+                                                          .stories[state
+                                                              .currenstorylistindex]
+                                                          .length),
+                                                    )
+                                                  : const SizedBox(),
+                                            ],
                                           ),
                                         ),
                                       );
@@ -486,7 +486,7 @@ class _storyuiState extends State<storyui> {
                 child: TweenAnimationBuilder<double>(
                     duration: mainbloc.state.runnedseconds == 0
                         ? Duration.zero
-                        : Duration(milliseconds: 100),
+                        : const Duration(milliseconds: 100),
                     curve: Curves.linear,
                     tween: Tween<double>(
                       begin: 0,
@@ -505,6 +505,38 @@ class _storyuiState extends State<storyui> {
             )
         ],
       ),
+    );
+  }
+}
+
+///COMMENTS:I know thatt if the videocontroller was in the videoplayerwidget's state then th evideo transitions would've been made
+///according to the video provided by the bloc but since I thought that the bloc part is more important than
+///the controller issues I've skipped that implementation. At last I think i made the clarification of bloc usage
+
+// ignore: camel_case_types
+class videoplayerwidget extends StatefulWidget {
+  const videoplayerwidget(
+      {super.key, required this.videourl, required this.controller});
+  final String videourl;
+  final VideoPlayerController controller;
+
+  @override
+  State<videoplayerwidget> createState() => _videoplayerwidgetState();
+}
+
+// ignore: camel_case_types
+class _videoplayerwidgetState extends State<videoplayerwidget> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AspectRatio(
+          aspectRatio: widget.controller.value.aspectRatio,
+          child: VideoPlayer(widget.controller)),
     );
   }
 }
